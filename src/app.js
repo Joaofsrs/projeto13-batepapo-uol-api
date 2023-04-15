@@ -50,7 +50,7 @@ server.post("/participants", async (req, res) => {
             time: now
         };
 
-        await db.collection("messages").insertOne(newUser);
+        await db.collection("messages").insertOne(newMessage);
 
         return res.sendStatus(201);
     }catch(err){
@@ -65,6 +65,31 @@ server.get('/participants', async (req, res) => {
         let participants = [];
         participants = await db.collection('participants').find().toArray();
         res.send(participants);
+    } catch (error) {
+        console.error(error);
+        res.sendStatus(500);
+    }
+});
+
+server.get('/messages', async (req, res) => {
+    try {
+        const { user } = req.headers;
+        const limit = Number(req.query.limit);
+        console.log(limit);
+        if(limit <= 0 || isNaN(limit)){
+            return res.sendStatus(422);
+        }
+
+        let messages = [];
+        messages = await db.collection('messages').find({$or: [ { $or: [ { to: user }, { from: user }] }, { $or: [ { to: "Todos" }, { from: "Todos" }] }]}).toArray();
+
+        if(limit){
+            const tamanho = messages.length;
+            if(limit < tamanho){
+                return res.send(messages.slice(tamanho-limit));
+            }
+        }
+        res.send(messages);
     } catch (error) {
         console.error(error);
         res.sendStatus(500);
