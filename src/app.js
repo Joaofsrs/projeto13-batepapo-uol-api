@@ -71,15 +71,47 @@ server.get('/participants', async (req, res) => {
     }
 });
 
+server.post('/messages', async (req, res) => {
+    try{    
+        const { to, text, type } = req.body;    
+        const { from } = req.headers;
+        const messageSchema = joi.object({
+            to: joi.string().required(),
+            text: joi.string().required(),
+            type: joi.string().required().valid("message").valid("private_message"),
+        })
+        const validate = messageSchema.validate(req.body);
+        if (validate.error) return res.sendStatus(422);
+        const validateFrom = await db.collection("participants").findOne({from: from});
+        if(!validateFrom){
+            return res.sendStatus(422);
+        }
+        const now  = dayjs().format("HH:mm:ss");
+        const newMessage = {
+            from: from, 
+            to: to, 
+            text: text, 
+            type: type, 
+            time: now
+        };
+
+        await db.collection("messages").insertOne(newMessage);
+
+        return res.sendStatus(201);
+    }catch(error){
+        console.error(error);
+        res.sendStatus(500);
+    }
+
+});
+
 server.get('/messages', async (req, res) => {
     try {
         const { user } = req.headers;
         const limit = Number(req.query.limit);
-        console.log(limit);
         if(limit <= 0 || isNaN(limit)){
             return res.sendStatus(422);
         }
-
         let messages = [];
         messages = await db.collection('messages').find({$or: [ { $or: [ { to: user }, { from: user }] }, { $or: [ { to: "Todos" }, { from: "Todos" }] }]}).toArray();
 
@@ -89,7 +121,7 @@ server.get('/messages', async (req, res) => {
                 return res.send(messages.slice(tamanho-limit));
             }
         }
-        res.send(messages);
+        res.status(201).send(messages);
     } catch (error) {
         console.error(error);
         res.sendStatus(500);
