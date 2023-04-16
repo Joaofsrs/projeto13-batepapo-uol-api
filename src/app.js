@@ -19,7 +19,7 @@ mongoClient.connect()
     .catch((err) => console.log(err.message));
 
 server.post("/participants", async (req, res) => {
-    try{
+    try {
         const { name } = req.body;
 
         console.log(name);
@@ -41,8 +41,8 @@ server.post("/participants", async (req, res) => {
 
         await db.collection("participants").insertOne(newUser);
 
-        const now  = dayjs().format("HH:mm:ss");
-        const newMessage = { 
+        const now = dayjs().format("HH:mm:ss");
+        const newMessage = {
             from: name,
             to: 'Todos',
             text: 'entra na sala...',
@@ -53,7 +53,7 @@ server.post("/participants", async (req, res) => {
         await db.collection("messages").insertOne(newMessage);
 
         return res.sendStatus(201);
-    }catch(err){
+    } catch (err) {
         console.log(err);
         res.sendStatus(500);
     }
@@ -72,8 +72,8 @@ server.get('/participants', async (req, res) => {
 });
 
 server.post('/messages', async (req, res) => {
-    try{    
-        const { to, text, type } = req.body;    
+    try {
+        const { to, text, type } = req.body;
         const { from } = req.headers;
         const messageSchema = joi.object({
             to: joi.string().required(),
@@ -82,23 +82,25 @@ server.post('/messages', async (req, res) => {
         })
         const validate = messageSchema.validate(req.body);
         if (validate.error) return res.sendStatus(422);
-        const validateFrom = await db.collection("participants").findOne({from: from});
-        if(!validateFrom){
+        const validateFrom = await db.collection("participants").findOne({ name: from });
+        if (!validateFrom) {
             return res.sendStatus(422);
         }
-        const now  = dayjs().format("HH:mm:ss");
+
+        const now = dayjs().format("HH:mm:ss");
+
         const newMessage = {
-            from: from, 
-            to: to, 
-            text: text, 
-            type: type, 
+            from: from,
+            to: to,
+            text: text,
+            type: type,
             time: now
         };
 
         await db.collection("messages").insertOne(newMessage);
 
         return res.sendStatus(201);
-    }catch(error){
+    } catch (error) {
         console.error(error);
         res.sendStatus(500);
     }
@@ -108,17 +110,17 @@ server.post('/messages', async (req, res) => {
 server.get('/messages', async (req, res) => {
     try {
         const { user } = req.headers;
-        const limit = Number(req.query.limit);
-        if(limit <= 0 || isNaN(limit)){
+        const limit = req.query.limit;
+        if ((Number(limit) <= 0 || isNaN(limit)) && limit !== undefined) {
             return res.sendStatus(422);
         }
         let messages = [];
-        messages = await db.collection('messages').find({$or: [ { $or: [ { to: user }, { from: user }] }, { $or: [ { to: "Todos" }, { from: "Todos" }] }]}).toArray();
+        messages = await db.collection('messages').find({ $or: [{ $or: [{ to: user }, { from: user }] }, { $or: [{ to: "Todos" }, { from: "Todos" }] }] }).toArray();
 
-        if(limit){
+        if (Number(limit)) {
             const tamanho = messages.length;
-            if(limit < tamanho){
-                return res.send(messages.slice(tamanho-limit));
+            if (Number(limit) < tamanho) {
+                return res.send(messages.slice(tamanho - Number(limit)));
             }
         }
         res.status(201).send(messages);
