@@ -129,7 +129,7 @@ server.get('/messages', async (req, res) => {
                 return res.send(messages.slice(tamanho - Number(limit)));
             }
         }
-        res.status(201).send(messages);
+        res.send(messages);
     } catch (error) {
         console.error(error);
         res.sendStatus(500);
