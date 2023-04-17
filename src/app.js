@@ -74,23 +74,29 @@ server.get('/participants', async (req, res) => {
 server.post('/messages', async (req, res) => {
     try {
         const { to, text, type } = req.body;
-        const { from } = req.headers;
+        const { user } = req.headers;
+        console.log(user);
+        console.log(to);
+        console.log(text);
+        console.log(type);
         const messageSchema = joi.object({
             to: joi.string().required(),
             text: joi.string().required(),
             type: joi.string().required().valid("message").valid("private_message"),
         })
         const validate = messageSchema.validate(req.body);
+        console.log(validate.error)
         if (validate.error) return res.sendStatus(422);
-        const validateFrom = await db.collection("participants").findOne({ name: from });
-        if (!validateFrom) {
+        const validateUser = await db.collection("participants").findOne({ name: user });
+        console.log(validateUser);
+        if (!validateUser) {
             return res.sendStatus(422);
         }
 
         const now = dayjs().format("HH:mm:ss");
 
         const newMessage = {
-            from: from,
+            from: user,
             to: to,
             text: text,
             type: type,
@@ -158,7 +164,7 @@ async function validateStatus(){
     const nowTime = Date.now();
 
     for(let i = 0; i < participants.length; i++){
-        if((time - participants[i].lastStatus) > 10000 ){
+        if((nowTime - participants[i].lastStatus) > 10000 ){
             const now = dayjs().format("HH:mm:ss");
             const newMessage = { 
                 from: participants[i].name,
