@@ -153,4 +153,27 @@ server.post('/status', async (req, res) => {
     }
 })
 
+async function validateStatus(){
+    const participants = await db.collection('participants').find().toArray();
+    const nowTime = Date.now();
+
+    for(let i = 0; i < participants.length; i++){
+        if((time - participants[i].lastStatus) > 10000 ){
+            const now = dayjs().format("HH:mm:ss");
+            const newMessage = { 
+                from: participants[i].name,
+                to: 'Todos',
+                text: 'sai da sala...',
+                type: 'status',
+                time: now
+            }
+
+            await db.collection("participants").deleteOne({ name: participants[i].name });
+            await db.collection("messages").insertOne(newMessage);
+        }
+    }
+}
+
+const myInterval = setInterval(validateStatus, 15000);
+
 server.listen(5000);
